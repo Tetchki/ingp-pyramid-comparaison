@@ -1,0 +1,18 @@
+SceneConfig:
+
+    # Required: either scene_path or ref_image must be set.
+
+    scene_path = "../scenes/painting/INGP/painting_neural.xml"
+    ref_image_path = "../scenes/painting/INGP/painting.xml"
+
+    # Paths
+    output_path = "../results/painting/INGP/"
+
+    # Optimization hyperparameters
+    lr = 1e-3
+    iterations = 128
+
+    # Save intermediate result every N iterations. Set to 0 to disable.
+    save_interval = 16
+
+    rerender_spp = 1024

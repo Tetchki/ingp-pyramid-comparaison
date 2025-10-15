@@ -1,0 +1,293 @@
+<scene version="2.1.0">
+
+<!-- Defaults, these can be set via the command line: -Darg=value -->
+
+	<default name="spp" value="256"/>
+	<default name="resx" value="1500"/>
+	<default name="resy" value="1200"/>
+
+<!-- Camera and Rendering Parameters -->
+
+	<integrator type="path" id="elm__0" name="elm__0">
+		<integer name="max_depth" value="12"/>
+	</integrator>
+	<sensor type="perspective" id="Camera.001" name="Camera.001">
+		<string name="fov_axis" value="x"/>
+		<float name="fov" value="24.999998"/>
+		<float name="principal_point_offset_x" value="0.000000"/>
+		<float name="principal_point_offset_y" value="-0.000000"/>
+		<float name="near_clip" value="0.100000"/>
+		<float name="far_clip" value="1000.000000"/>
+		<transform name="to_world">
+			<rotate x="1" angle="-179.20305853659926"/>
+			<rotate y="1" angle="-66.35209125814231"/>
+			<rotate z="1" angle="179.89730628459603"/>
+			<translate value="10.247712 1.031382 4.117391"/>
+		</transform>
+		<sampler type="independent" name="sampler">
+			<integer name="sample_count" value="$spp"/>
+		</sampler>
+		<film type="hdrfilm" name="film">
+			<integer name="width" value="$resx"/>
+			<integer name="height" value="$resy"/>
+		</film>
+	</sensor>
+
+<!-- Materials -->
+
+	<bsdf type="twosided" id="mat-Frame" name="mat-Frame">
+		<bsdf type="principled" name="bsdf">
+			<texture type="mipmap_flat" name="base_color">
+				<texture type="bitmap" name="nested_bitmap">
+					<string name="format" value="variant"/>
+					<string name="filename" value="textures/Frame_BaseColor_sRGB.jpg"/>
+				</texture>
+			</texture>
+			<rgb value="0.000000 0.000000 0.000000" name="spec_tint"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.000000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.300000"/>
+			<float name="sheen" value="0.000000"/>
+			<rgb value="1.000000 1.000000 1.000000" name="sheen_tint"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.000900"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="twosided" id="mat-art_1" name="mat-art_1">
+		<bsdf type="principled" name="bsdf">
+			<rgb value="1.000000 0.740263 0.284061" name="base_color"/>
+			<rgb value="0.000000 0.000000 0.000000" name="spec_tint"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="1.000000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<texture type="mipmap_flat" name="roughness">
+				<texture type="bitmap" name="nested_bitmap">
+					<string name="format" value="variant"/>
+					<string name="filename" value="textures/metal-7_smooth.jpg.png"/>
+					<boolean name="raw" value="true"/>
+				</texture>
+			</texture>
+			<float name="sheen" value="0.000000"/>
+			<rgb value="1.000000 1.000000 1.000000" name="sheen_tint"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.000900"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="normalmap_flip" id="mat-Concrete wall.002" name="mat-Concrete wall.002">
+		<bsdf type="twosided" name="bsdf">
+			<bsdf type="principled" name="bsdf">
+				<texture type="mipmap_flat" name="base_color">
+					<texture type="bitmap" name="nested_bitmap">
+						<string name="format" value="variant"/>
+						<string name="filename" value="textures/concrete_wall_Albedo.jpg"/>
+					</texture>
+				</texture>
+				<rgb value="0.000000 0.000000 0.000000" name="spec_tint"/>
+				<float name="spec_trans" value="0.000000"/>
+				<float name="metallic" value="0.000000"/>
+				<float name="anisotropic" value="0.000000"/>
+				<float name="roughness" value="0.500000"/>
+				<float name="sheen" value="0.000000"/>
+				<rgb value="1.000000 1.000000 1.000000" name="sheen_tint"/>
+				<float name="clearcoat" value="0.000000"/>
+				<float name="clearcoat_gloss" value="0.000900"/>
+				<float name="specular" value="0.500000"/>
+			</bsdf>
+		</bsdf>
+		<texture type="mipmap_flat" name="normalmap">
+			<texture type="bitmap" name="nested_bitmap">
+				<string name="format" value="variant"/>
+				<string name="filename" value="textures/concrete_wall_Normal.jpg"/>
+				<boolean name="raw" value="true"/>
+			</texture>
+		</texture>
+		<boolean name="safe_flip" value="false"/>
+		<boolean name="shadow_terminator" value="false"/>
+	</bsdf>
+	<bsdf type="twosided" id="mat-writting_art_1" name="mat-writting_art_1">
+		<bsdf type="principled" name="bsdf">
+			<texture type="mipmap_flat" name="base_color">
+				<texture type="bitmap" name="nested_bitmap">
+					<string name="format" value="variant"/>
+					<string name="filename" value="textures/writting.001.png"/>
+				</texture>
+			</texture>
+			<rgb value="0.000000 0.000000 0.000000" name="spec_tint"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.200000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.500000"/>
+			<float name="sheen" value="0.000000"/>
+			<rgb value="1.000000 1.000000 1.000000" name="sheen_tint"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.000900"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="twosided" id="mat-art_3" name="mat-art_3">
+		<bsdf type="principled" name="bsdf">
+			<texture type="mipmap_flat" name="base_color">
+				<texture type="bitmap" name="nested_bitmap">
+					<string name="format" value="variant"/>
+					<string name="filename" value="textures/The_Great_Wave_off_Kanagawa_4k.001.jpg"/>
+				</texture>
+			</texture>
+			<rgb value="0.000000 0.000000 0.000000" name="spec_tint"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.600000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.500000"/>
+			<float name="sheen" value="0.000000"/>
+			<rgb value="1.000000 1.000000 1.000000" name="sheen_tint"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.000900"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="twosided" id="mat-writting_art_3" name="mat-writting_art_3">
+		<bsdf type="principled" name="bsdf">
+			<texture type="mipmap_flat" name="base_color">
+				<texture type="bitmap" name="nested_bitmap">
+					<string name="format" value="variant"/>
+					<string name="filename" value="textures/writting.png"/>
+				</texture>
+			</texture>
+			<rgb value="0.000000 0.000000 0.000000" name="spec_tint"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.200000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.500000"/>
+			<float name="sheen" value="0.000000"/>
+			<rgb value="1.000000 1.000000 1.000000" name="sheen_tint"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.000900"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="twosided" id="mat-art_2" name="mat-art_2">
+		<bsdf type="principled" name="bsdf">
+			<texture type="mipmap_flat" name="base_color">
+				<texture type="bitmap" name="nested_bitmap">
+					<string name="format" value="variant"/>
+					<string name="filename" value="textures/Claude_Lorrain_008.jpg"/>
+				</texture>
+			</texture>
+			<rgb value="0.000000 0.000000 0.000000" name="spec_tint"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.600000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.500000"/>
+			<float name="sheen" value="0.000000"/>
+			<rgb value="1.000000 1.000000 1.000000" name="sheen_tint"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.000900"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+	<bsdf type="twosided" id="mat-writting_art_2" name="mat-writting_art_2">
+		<bsdf type="principled" name="bsdf">
+			<texture type="mipmap_flat" name="base_color">
+				<texture type="bitmap" name="nested_bitmap">
+					<string name="format" value="variant"/>
+					<string name="filename" value="textures/writting_2.png"/>
+				</texture>
+			</texture>
+			<rgb value="0.000000 0.000000 0.000000" name="spec_tint"/>
+			<float name="spec_trans" value="0.000000"/>
+			<float name="metallic" value="0.200000"/>
+			<float name="anisotropic" value="0.000000"/>
+			<float name="roughness" value="0.500000"/>
+			<float name="sheen" value="0.000000"/>
+			<rgb value="1.000000 1.000000 1.000000" name="sheen_tint"/>
+			<float name="clearcoat" value="0.000000"/>
+			<float name="clearcoat_gloss" value="0.000900"/>
+			<float name="specular" value="0.500000"/>
+		</bsdf>
+	</bsdf>
+
+<!-- Emitters -->
+
+	<emitter type="constant" id="World" name="World">
+		<rgb value="0.145818 0.145818 0.145818" name="radiance"/>
+	</emitter>
+	<emitter type="spot" id="emit-Spot" name="emit-Spot">
+		<rgb value="79.577469 79.577469 79.577469" name="intensity"/>
+		<float name="cutoff_angle" value="27.500000"/>
+		<float name="beam_width" value="25.316531"/>
+		<transform name="to_world">
+			<matrix value="0.992639 -0.116880 0.031746 0.279977 -0.026246 -0.463473 -0.885722 4.518194 0.118237 0.878369 -0.463129 1.058354 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+	</emitter>
+	<emitter type="spot" id="emit-Spot.001" name="emit-Spot.001">
+		<rgb value="63.661976 63.661976 63.661976" name="intensity"/>
+		<float name="cutoff_angle" value="27.500000"/>
+		<float name="beam_width" value="25.316531"/>
+		<transform name="to_world">
+			<matrix value="0.338311 0.596487 -0.727838 0.567548 -0.061402 -0.757805 -0.649586 3.924603 -0.939029 0.264453 -0.219748 1.165718 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+	</emitter>
+	<emitter type="spot" id="emit-Spot.002" name="emit-Spot.002">
+		<rgb value="79.577469 79.577469 79.577469" name="intensity"/>
+		<float name="cutoff_angle" value="27.500000"/>
+		<float name="beam_width" value="25.316531"/>
+		<transform name="to_world">
+			<matrix value="0.976773 -0.195650 0.087378 3.101057 -0.013569 -0.463446 -0.886021 4.532858 0.213845 0.864256 -0.455336 1.410014 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+	</emitter>
+
+<!-- Shapes -->
+
+	<shape type="ply" id="mesh-Frame" name="mesh-Frame">
+		<string name="filename" value="meshes/Frame.ply"/>
+		<ref id="mat-Frame" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-Frame_001" name="mesh-Frame_001">
+		<string name="filename" value="meshes/Frame_001.ply"/>
+		<ref id="mat-Frame" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-Frame_002" name="mesh-Frame_002">
+		<string name="filename" value="meshes/Frame_002.ply"/>
+		<ref id="mat-Frame" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-roughness_grid" name="mesh-roughness_grid">
+		<string name="filename" value="meshes/roughness_grid.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-art_1" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-wall" name="mesh-wall">
+		<string name="filename" value="meshes/wall.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-Concrete wall.002" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-writting_1" name="mesh-writting_1">
+		<string name="filename" value="meshes/writting_1.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-writting_art_1" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-roughness_grid_001" name="mesh-roughness_grid_001">
+		<string name="filename" value="meshes/roughness_grid_001.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-art_3" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-writting_3" name="mesh-writting_3">
+		<string name="filename" value="meshes/writting_3.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-writting_art_3" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-roughness_grid_002" name="mesh-roughness_grid_002">
+		<string name="filename" value="meshes/roughness_grid_002.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-art_2" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-writting_2" name="mesh-writting_2">
+		<string name="filename" value="meshes/writting_2.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-writting_art_2" name="bsdf"/>
+	</shape>
+
+<!-- Volumes -->
+
+</scene>

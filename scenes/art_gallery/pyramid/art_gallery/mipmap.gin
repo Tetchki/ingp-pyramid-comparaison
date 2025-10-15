@@ -1,0 +1,6 @@
+include 'scenes/scene_configs/art_gallery_base.gin'
+
+SceneConfig:
+  approach = %Approach.MIPMAP
+  result_folder = 'results/art_gallery/mipmap/'
+  base_learning_rate = 100.0

@@ -1,0 +1,34 @@
+SceneConfig:
+    scene_name = 'painting'
+    scene_folder = '../scenes/painting/Pyramid/'
+    result_folder = '../results/painting/Pyramid/'
+    tmp_folder = '../tmp/'
+    approach = %Approach.MIPMAP_PYRAMID
+
+    optimized_sensors_indices = [1]
+    optimized_shapes = None
+    loss = @losses.l2_norm
+
+    mip_min_res = 16
+
+    n_iter = 128
+    mip_bias = -1.0
+
+    reference_scaling = 1.0
+    reference_spp = 1024
+
+    rerender_spp = 1024
+
+    base_learning_rate = 1e-3
+    
+    optimized_path_depth = 5
+    samples_per_pixel_primal = 16
+    samples_per_pixel_gradient = 1
+
+    # /!\ If the reference needs to be generated again it was using Blender 
+    # use_mitsuba_reference = False
+    use_mitsuba_reference = True
+
+
+
+losses.huber.delta = 4.0

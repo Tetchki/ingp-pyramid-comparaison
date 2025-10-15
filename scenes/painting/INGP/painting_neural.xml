@@ -1,0 +1,75 @@
+<scene version="2.1.0">
+
+<!-- Defaults, these can be set via the command line: -Darg=value -->
+
+	<default name="spp" value="4096"/>
+	<default name="resx" value="1024"/>
+	<default name="resy" value="1024"/>
+
+<!-- Camera and Rendering Parameters -->
+<!--
+	<integrator type="path" id="elm__0" name="elm__0">
+		<integer name="max_depth" value="12"/>
+	</integrator>
+	-->
+	<integrator type="prb" id="elm__0" name="elm__0">
+		<integer name="max_depth" value="5"/>
+	</integrator>
+	<sensor type="perspective" id="camera" name="camera">
+		<string name="fov_axis" value="x"/>
+		<float name="fov" value="39.597755"/>
+		<float name="principal_point_offset_x" value="0.000000"/>
+		<float name="principal_point_offset_y" value="-0.000000"/>
+		<float name="near_clip" value="0.100000"/>
+		<float name="far_clip" value="100.000000"/>
+		<transform name="to_world">
+			<rotate x="1" angle="-175.24798285619"/>
+			<rotate y="1" angle="-26.783982358463458"/>
+			<rotate z="1" angle="179.9999640278213"/>
+			<translate value="0.346642 0.056158 0.629000"/>
+		</transform>
+		<sampler type="independent" name="sampler">
+			<integer name="sample_count" value="$spp"/>
+		</sampler>
+		<film type="hdrfilm" name="film">
+			<integer name="width" value="$resx"/>
+			<integer name="height" value="$resy"/>
+		</film>
+	</sensor>
+
+<!-- Materials -->
+
+
+<!-- Emitters -->
+
+	<emitter type="envmap" id="envmap" name="envmap">
+		<string name="filename" value="textures/hotel_room_2k.exr"/>
+		<float name="scale" value="1.000000"/>
+		<transform name="to_world">
+			<matrix value="0.000000 0.000000 1.000000 0.000000 0.000000 1.000000 0.000000 0.000000 -1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+	</emitter>
+
+<!-- Shapes -->
+
+	<shape type="ply" id="object" name="object">
+		<string name="filename" value="meshes/Painting.ply"/>
+	  <bsdf type="twosided" id="mat-painting_material" name="mat-painting_material">
+		  <bsdf type="principled" name="bsdf">
+		  
+			  <texture type="neuraltexture" name="base_color">
+			    <string name="encoding_type" value="hashgrid"/>
+				  <integer name="n_levels" value="8"/>
+				  <integer name="n_features_per_level" value="3"/>
+				  <integer name="hashmap_size" value="3000000"/>
+				  <integer name="base_resolution" value="16"/>
+				  <float name="per_level_scale" value="2"/>
+			  </texture>
+
+		  </bsdf>
+	  </bsdf>
+	</shape>
+
+<!-- Volumes -->
+
+</scene>

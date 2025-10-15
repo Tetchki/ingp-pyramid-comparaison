@@ -1,0 +1,6 @@
+include 'scenes/scene_configs/art_gallery_base.gin'
+
+SceneConfig:
+  approach = %Approach.NAIVE
+  result_folder = 'results/art_gallery/naive_scales/'
+  n_texture_scales = 13

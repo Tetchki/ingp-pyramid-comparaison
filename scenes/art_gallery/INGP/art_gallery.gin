@@ -1,0 +1,24 @@
+SceneConfig:
+
+    # Required: either scene_path or ref_image must be set.
+    scene_path = "../scenes/art_gallery/INGP/art_gallery_neural.xml"
+    ref_image_path = "../scenes/art_gallery/INGP/art_gallery.xml"
+
+    # Paths
+    output_path = "../output/art_gallery"
+
+    # Rendering backend
+    mitsuba_variant = "cuda_ad_rgb"
+
+    # Optimization hyperparameters
+    lr = 1e-2
+    iterations = 128
+
+    beta_1 = 0.9
+
+    spp = 64
+    spp_primal = 4
+    spp_grad = 1
+
+    # Save intermediate result every N iterations. Set to 0 to disable.
+    save_interval = 25
