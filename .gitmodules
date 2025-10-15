@@ -1,0 +1,3 @@
+[submodule "ext/practical-inverse-rendering-of-textured-and-translucent-appearance"]
+	path = ext/practical-inverse-rendering-of-textured-and-translucent-appearance
+	url = git@github.com:Tetchki/practical-inverse-rendering-of-textured-and-translucent-appearance.git
