@@ -1,6 +1,0 @@
-include 'scenes/scene_configs/art_gallery_base.gin'
-
-SceneConfig:
-  approach = %Approach.MIPMAP_PYRAMID
-  result_folder = 'results/art_gallery/mipmap_pyramid/'
-  base_learning_rate = 0.1
