@@ -21,14 +21,12 @@ class SceneConfig:
     """
     Configuration for a scene optimization run.
     """
-    scene_path: Optional[str] = None
-    ref_image_path: Optional[str] = None
+    ref_scene: Optional[str] = None
+    ingp_scene: Optional[str] = None
+    pyramid_scene: Optional[str] = None
 
     # Paths
-    output_path: str = "./output"
-
-    # Rendering backend
-    mitsuba_variant: str = "cuda_ad_rgb"
+    output_path: str = "../../results"  # Output directory for results
 
     # Optimization hyperparameters
     lr: float = 1e-3
@@ -39,7 +37,7 @@ class SceneConfig:
     beta_2: Optional[float] = None
 
     # Rendering parameters
-    spp: int = 1024  # Samples per pixel for rendering during optimization
+    ref_spp: int = 1024  # Samples per pixel for reference image
     spp_primal: int = 16  # Samples per pixel for primal rendering
     spp_grad: int = 1    # Samples per pixel for gradient estimation
 
@@ -49,10 +47,8 @@ class SceneConfig:
     save_interval: int = 0
 
     def validate(self) -> None:
-        if not (self.scene_path or self.ref_image_path):
-            raise ValueError(
-                "Invalid config: both `scene_path` and `ref_image_path` are None. One must be provided."
-            )
+        if not (self.ref_scene and (self.ingp_scene or self.pyramid_scene)):
+            raise ValueError("A valid `ref_scene` and either `ingp_scene` or `pyramid_scene` must be provided.")
 
         if self.lr <= 0:
             raise ValueError("`lr` must be > 0.")
@@ -63,13 +59,10 @@ class SceneConfig:
 
         _validate_beta_pair(self.beta_1, self.beta_2)
 
-        _validate_positive_int("spp", self.spp, 1)
+        _validate_positive_int("ref_spp", self.ref_spp, 1)
         _validate_positive_int("spp_primal", self.spp_primal, 1)
         _validate_positive_int("spp_grad", self.spp_grad, 1)
         _validate_positive_int("rerender_spp", self.rerender_spp, 1)
-
-        if not isinstance(self.mitsuba_variant, str) or not self.mitsuba_variant:
-            raise ValueError("`mitsuba_variant` must be a non-empty string.")
 
     def to_dict(self) -> Dict[str, Any]:
         return dataclasses.asdict(self)
@@ -82,41 +75,31 @@ class SceneConfig:
 
 @gin.configurable
 def make_scene_config(
-    scene_path: Optional[str] = None,
-    ref_image_path: Optional[str] = None,
-
-    output_path: str = "../results",
-
-    # Optimization hyperparameters
-    lr: float = 1e-3,
-    iterations: int = 128,
-
-    # Optimizer parameters
-    beta_1: float = 0.9,
-    beta_2: Optional[float] = None,
-
-    # Rendering parameters
-    spp: int = 1024,
-    spp_primal: int = 64,
-    spp_grad: int = 1,
-
-    # Rerendering parameters
-    rerender_spp: int = 1024,
-
-    # IO
-    save_interval: int = 0,
-) -> SceneConfig:
-
-
+        ref_scene: Optional[str] = None,
+        ingp_scene: Optional[str] = None,
+        pyramid_scene: Optional[str] = None,
+        output_path: str = "../results",
+        lr: float = 1e-3,
+        iterations: int = 128,
+        beta_1: float = 0.9,
+        beta_2: Optional[float] = None,
+        ref_spp: int = 1024,
+        spp_primal: int = 16,
+        spp_grad: int = 1,
+        rerender_spp: int = 1024,
+        save_interval: int = 0,
+    ) -> SceneConfig:
+    """Factory function to create a SceneConfig instance."""
     cfg = SceneConfig(
-        scene_path=scene_path,
-        ref_image_path=ref_image_path,
+        ref_scene=ref_scene,
+        ingp_scene=ingp_scene,
+        pyramid_scene=pyramid_scene,
         output_path=output_path,
         lr=lr,
         iterations=iterations,
         beta_1=beta_1,
         beta_2=beta_2,
-        spp=spp,
+        ref_spp=ref_spp,
         spp_primal=spp_primal,
         spp_grad=spp_grad,
         rerender_spp=rerender_spp,

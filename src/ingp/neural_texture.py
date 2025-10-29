@@ -1,8 +1,6 @@
 import mitsuba as mi
 import drjit as dr
 import drjit.nn as nn
-from mitsuba.scalar_rgb import TensorXf
-
 
 class NeuralTexture(mi.Texture):
     """
@@ -192,10 +190,7 @@ class NeuralTexture(mi.Texture):
         """Evaluate the texture at a surface interaction point."""
         texture_coop = self.m_network(nn.CoopVec(si.uv))
 
-        texture = mi.Spectrum(texture_coop)
-        # Clamp to avoid numerical issues
-        texture = dr.clip(texture, 0, 1e3)
-        return texture
+        return mi.Spectrum(texture_coop)
 
     def bbox(self):
         """Return the cache's bounding box."""
@@ -216,7 +211,7 @@ class NeuralTexture(mi.Texture):
     def parameters_changed(self, keys=None):
         """Mark emitter as dirty when parameters change."""
         super().parameters_changed(keys)
-        self.set_dirty(True)
+        #self.set_dirty(True)
 
     def to_string(self):
         """Return a string representation of the texture."""
