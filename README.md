@@ -18,6 +18,7 @@ python3 main.py --config ../scenes/painting/painting.gin --method both
 
 # Modification
 
-To modify the hashgrid's structure, change the parameters in the xml file (e.g. `scenes/painting/painting_neural.xml`).
+You can modify the parameters of the INGP and Laplacian Pyramid in their respective XML files
+(e.g. `scenes/painting/painting_neural.xml` for INGP and `scenes/painting/painting_pyramid.xml` for Laplacian Pyramid).
 
 The rest of the parameters (lr, spp, etc.) can be changed in the gin config file (e.g. `scenes/painting/painting.gin` ).
