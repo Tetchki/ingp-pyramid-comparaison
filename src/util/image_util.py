@@ -20,7 +20,7 @@ import drjit as dr  # type: ignore
 import mitsuba as mi  # type: ignore
 import numpy as np
 
-from src.util import mitsuba_util
+from util import mitsuba_util
 
 #_BOXFILTER = mi.scalar_rgb.load_dict({'type': 'box'})
 

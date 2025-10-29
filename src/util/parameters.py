@@ -23,7 +23,7 @@ from typing import Any
 import drjit as dr  # type: ignore
 import mitsuba as mi  # type: ignore
 
-from src.util import variable_types
+from util import variable_types
 
 
 class Variables(metaclass=abc.ABCMeta):

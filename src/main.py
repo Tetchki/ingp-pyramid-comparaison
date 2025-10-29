@@ -18,7 +18,7 @@ from tqdm import trange
 
 from util.config import SceneConfig
 from pyramid import flatmip_aware_pyramid
-from src.ingp import instantNGP
+from ingp import instantNGP
 from util import parameters as parameters_lib
 from util.parameters import MitsubaVariables
 

@@ -21,7 +21,7 @@ import mitsuba as mi  # type: ignore
 import numpy as np
 
 from util import image_util, variable, losses
-from src.pyramid import pyramid
+from pyramid import pyramid
 
 
 class FlatMipAwareImagePyramidVariable(variable.Variable):
