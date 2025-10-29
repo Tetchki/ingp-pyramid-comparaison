@@ -1,0 +1,17 @@
+SceneConfig:
+
+    ref_scene = "../scenes/painting/painting.xml"
+    ingp_scene = "../scenes/painting/painting_neural.xml"
+    pyramid_scene = "../scenes/painting/painting_pyramid.xml"
+
+    # Paths
+    output_path = "../results/painting/"
+
+    # Optimization hyperparameters
+    lr = 1e-3
+    iterations = 128
+
+    # Save intermediate result every N iterations. Set to 0 to disable.
+    save_interval = 16
+
+    rerender_spp = 1024
