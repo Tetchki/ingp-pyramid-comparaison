@@ -1,0 +1,193 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{rgltitle}[]
+
+% -------- Engine & deps (pdfLaTeX only) --------
+\RequirePackage{ifpdf}
+\ifpdf\else
+  \PackageError{rgltitle-pdftex}{This package is for pdfLaTeX}{Switch compiler to pdfLaTeX.}
+\fi
+
+% Core deps
+\RequirePackage[T1]{fontenc}
+\RequirePackage[utf8]{inputenc}
+\RequirePackage{xcolor}
+\RequirePackage{graphicx}
+\RequirePackage{etoolbox}  % \ifdefempty
+\RequirePackage{geometry}
+\RequirePackage{hyperref}
+\RequirePackage{microtype}
+
+% --------- Sans serif font (portable) ----------
+% Prefer TeX Gyre Heros (Helvetica), fallback to PS Helvetica.
+\IfFileExists{tgheros.sty}
+  {\RequirePackage[scaled=1.0]{tgheros}}
+  {\RequirePackage[scaled=1.0]{helvet}}
+% Make sans the default for our wordmark bits
+
+% ---------- Settings you can tweak ----------
+% EPFL logo file (no extension so users can pick .pdf/.png/.eps)
+\providecommand{\rglEPFLLogo}{logo_epfl_coul}
+% EPFL logo width
+\newcommand{\rglEPFLLogoWidth}{4cm}
+% Line spacing around rules
+\newcommand{\rglRuleVSpace}{0.3cm}
+% Gap before the RGL wordmark block
+\newcommand{\rglWordmarkTopSkip}{1cm}
+% Font color for the "full" text
+\definecolor{rglgray}{HTML}{AAAAAA}
+
+% ---------- “Condensed” helper (engine-agnostic) ----------
+% Fake a condensed look by horizontal scaling; robust and pdfTeX-safe.
+\DeclareRobustCommand{\RGLCondense}[2][0.86]{%
+  \begingroup
+    \leavevmode
+    \scalebox{#1}[1]{#2}%
+  \endgroup
+}
+
+% ---------- Fonts (engine-agnostic shims) ----------
+% Chunky abbrev = sans + bold; Full wordmark = sans + faux-condensed + gray
+\newcommand{\RGLAbbrev}[1]{{\sffamily\bfseries #1}}
+\newcommand{\RGLFull}[1]{{\sffamily\RGLCondense{\textcolor{rglgray}{#1}}}}
+
+% ---------- RGL wordmark ----------
+\newcommand{\rglLogo}[1][1.0]{%
+  \begingroup
+    \normalsize
+    \scalebox{#1}[#1]{%
+      {\RGLAbbrev{\fontsize{16}{18}\selectfont RGL}}%
+      \hspace{0.8em}%
+      {\RGLFull{\fontsize{16}{18}\selectfont Realistic Graphics Lab}}%
+    }%
+  \endgroup
+}
+
+% ---------- Metadata storage ----------
+\newcommand{\rgl@title}{}
+\newcommand{\rgl@author}{}
+\newcommand{\rgl@department}{}
+\newcommand{\rgl@project}{}
+\newcommand{\rgl@date}{}
+
+% Two roles for supervisors (common use): Responsible + Supervisor
+\newcommand{\rgl@respname}{}
+\newcommand{\rgl@respaffil}{}
+\newcommand{\rgl@supname}{}
+\newcommand{\rgl@supaffil}{}
+
+% Standard setters (mirror LaTeX)
+\renewcommand{\title}[1]{\gdef\rgl@title{#1}}
+\renewcommand{\author}[1]{\gdef\rgl@author{#1}}
+\renewcommand{\date}[1]{\gdef\rgl@date{#1}} % use \date{\today} or a string
+
+% Extra setters
+\newcommand{\department}[1]{\gdef\rgl@department{#1}}
+\newcommand{\project}[1]{\gdef\rgl@project{#1}}
+
+% Supervisor setters
+\newcommand{\responsible}[2]{\gdef\rgl@respname{#1}\gdef\rgl@respaffil{#2}}
+\newcommand{\supervisor}[2]{\gdef\rgl@supname{#1}\gdef\rgl@supaffil{#2}}
+
+% ---------- Internal blocks ----------
+\newcommand{\rgl@logoepfl}{%
+  \begin{center}
+    \includegraphics[width=\rglEPFLLogoWidth]{\rglEPFLLogo}%
+  \end{center}
+  \vspace{\rglRuleVSpace}
+  \hrule
+}
+
+\newcommand{\rgl@logorgl}{%
+  \vspace{\rglWordmarkTopSkip}
+  \hrule
+  \begin{center}
+    \rglLogo[2.0]%
+  \end{center}
+}
+
+\newcommand{\rgl@blocktitle}{%
+  \vspace{3cm}
+  \begin{center}
+    {\huge \rgl@title\par}
+  \end{center}
+  \vspace{1.7cm}
+}
+
+\newcommand{\rgl@blockauthor}{%
+  \begin{center}
+    {\Large \rgl@author\par}
+  \end{center}
+  \vspace{0.5cm}
+}
+
+\newcommand{\rgl@blockdeptproj}{%
+  \ifdefempty{\rgl@department}{}{%
+    \begin{center}\large \rgl@department\end{center}%
+  }
+  \ifdefempty{\rgl@project}{}{%
+    \vspace{1cm}
+    \begin{center}\large \rgl@project\end{center}%
+  }
+}
+
+\newcommand{\rgl@blockdate}{%
+  \ifdefempty{\rgl@date}{}{%
+    \vspace{0.5cm}
+    \begin{center}\normalsize \rgl@date\end{center}%
+  }
+}
+
+% ---- Helpers for centered role boxes ----
+\newcommand{\rgl@rolebox}[3]{%
+  \begin{tabular}{@{}>{\centering\arraybackslash}p{4.0cm}@{}}
+    {\bfseries #1}\\[0.2em] #2\\ #3
+  \end{tabular}%
+}
+
+\newcommand{\rgl@blocksupervisors}{%
+  \vspace{0.8cm}
+  \begin{center}
+    % Case: both roles present -> two centered boxes with a fixed gap
+    \ifdefempty{\rgl@respname}{%
+      \ifdefempty{\rgl@supname}{%
+        % none -> nothing
+      }{%
+        % only supervisor
+        \rgl@rolebox{Supervisor}{\rgl@supname}{\rgl@supaffil}%
+      }%
+    }{%
+      \ifdefempty{\rgl@supname}{%
+        % only responsible
+        \rgl@rolebox{Responsible}{\rgl@respname}{\rgl@respaffil}%
+      }{%
+        % both
+        \begin{tabular}{@{}>{\centering\arraybackslash}p{4.0cm}@{\hspace{1.5cm}}>{\centering\arraybackslash}p{4.0cm}@{}}
+          \rgl@rolebox{Responsible}{\rgl@respname}{\rgl@respaffil} &
+          \rgl@rolebox{Supervisor}{\rgl@supname}{\rgl@supaffil}
+        \end{tabular}%
+      }%
+    }%
+  \end{center}
+}
+
+% ---------- \maketitle ----------
+\renewcommand{\maketitle}{%
+  \clearpage
+  \thispagestyle{empty}
+  \rgl@logoepfl
+  \rgl@blocktitle
+  \rgl@blockauthor
+  \rgl@blockdeptproj
+  \rgl@blockdate
+  \rgl@blocksupervisors
+  \rgl@logorgl
+  \clearpage
+}
+
+% ---------- TOC helper ----------
+\newcommand{\maketoc}{%
+  \cleardoublepage
+  \pdfbookmark{\contentsname}{toc}%
+  \tableofcontents
+  \setlength{\parskip}{1em}%
+}
