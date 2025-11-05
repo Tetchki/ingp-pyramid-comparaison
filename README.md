@@ -13,7 +13,13 @@ pip install -r requirements.txt
 In the src directory, run:
 
 ```bash
-python3 main.py --config ../scenes/painting/painting.gin --method both
+python3 scene_opti.py --config ../scenes/painting/painting.gin --method both
+```
+
+Or to run a texture optimization:
+
+```bash
+python3 texture_opti.py --ref ../scenes/textures/The_Great_Wave_off_Kanagawa_4k.jpg --method both --lr 1e-3 --resolution 16 --iterations 512 --output_path ../results/texture_opti
 ```
 
 # Modification

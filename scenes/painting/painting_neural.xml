@@ -59,7 +59,7 @@
 		  
 			  <texture type="neuraltexture" name="base_color">
 			    <string name="encoding_type" value="hashgrid"/>
-				  <integer name="n_levels" value="8"/>
+				  <integer name="n_levels" value="9"/>
 				  <integer name="n_features_per_level" value="3"/>
 				  <integer name="hashmap_size" value="30000000"/>
 				  <integer name="base_resolution" value="16"/>

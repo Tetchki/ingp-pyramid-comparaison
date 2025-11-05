@@ -22,7 +22,7 @@ class SceneConfig:
     Configuration for a scene optimization run.
     """
     ref_scene: Optional[str] = None
-    ingp_scene: Optional[str] = None
+    hashgrid_scene: Optional[str] = None
     pyramid_scene: Optional[str] = None
 
     # Paths
@@ -47,8 +47,8 @@ class SceneConfig:
     save_interval: int = 0
 
     def validate(self) -> None:
-        if not (self.ref_scene and (self.ingp_scene or self.pyramid_scene)):
-            raise ValueError("A valid `ref_scene` and either `ingp_scene` or `pyramid_scene` must be provided.")
+        if not (self.ref_scene and (self.hashgrid_scene or self.pyramid_scene)):
+            raise ValueError("A valid `ref_scene` and either `hashgrid_scene` or `pyramid_scene` must be provided.")
 
         if self.lr <= 0:
             raise ValueError("`lr` must be > 0.")
@@ -76,7 +76,7 @@ class SceneConfig:
 @gin.configurable
 def make_scene_config(
         ref_scene: Optional[str] = None,
-        ingp_scene: Optional[str] = None,
+        hashgrid_scene: Optional[str] = None,
         pyramid_scene: Optional[str] = None,
         output_path: str = "../results",
         lr: float = 1e-3,
@@ -92,7 +92,7 @@ def make_scene_config(
     """Factory function to create a SceneConfig instance."""
     cfg = SceneConfig(
         ref_scene=ref_scene,
-        ingp_scene=ingp_scene,
+        hashgrid_scene=hashgrid_scene,
         pyramid_scene=pyramid_scene,
         output_path=output_path,
         lr=lr,

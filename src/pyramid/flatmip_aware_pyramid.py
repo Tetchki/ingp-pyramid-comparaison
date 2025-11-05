@@ -26,17 +26,6 @@ from pyramid import pyramid
 
 class FlatMipAwareImagePyramidVariable(variable.Variable):
   """Represents a variable as a multiresolution pyramid and a possible associated mipmapped Bitmap.
-
-  Attributes:
-    n_levels: Levels of the multiresolution pyramid. If the number of levels is
-      equal to 1, the pyramid effectively reverts to a regular 2D image.
-    factor: The downsampling factor between each level of the pyramid. Has to be
-      a power of 2.
-    pyramid: The multiresolution pyramid itself.
-    mipmapped: If True, the variable needs to be linked to a mipmapped tensor in
-      the scene parameters.
-    current_lod: The current LoD level. (0 = lowest resolution, -1 = highest
-      resolution).
   """
 
   def __init__(
@@ -66,6 +55,20 @@ class FlatMipAwareImagePyramidVariable(variable.Variable):
     self.buffer_offsets = None
     self.storage_type = None
 
+    # Normalize the scene prefix: handle keys like ".data" -> "data"
+    self._scene_key_prefix = self.key.lstrip('.') if self.key else ''
+
+    # Resolved scene keys (support both "data.xxx" and plain "xxx")
+    self._base_mip_shape_key: str | None = None
+    self._mip_factor_key: str | None = None
+    self._flat_buffer_offsets_key: str | None = None
+
+    # For writing back in get_value
+    if self._scene_key_prefix:
+      self._flat_buffer_key: str = f'{self._scene_key_prefix}.flat_buffer'
+    else:
+      self._flat_buffer_key: str = 'flat_buffer'
+
   def _get_level_key(self, level: int) -> str:
     return f'{self.optimizer_key}.pyramid.{level}'
 
@@ -90,20 +93,62 @@ class FlatMipAwareImagePyramidVariable(variable.Variable):
         assert self.initial_value.shape == self.shape
       return
 
-    if f'{self.key}.base_mip_shape' not in scene_parameters.keys():
+    # Preferred names based on normalized prefix
+    if self._scene_key_prefix:
+      preferred_base_key = f'{self._scene_key_prefix}.base_mip_shape'
+      preferred_factor_key = f'{self._scene_key_prefix}.mip_factor'
+      preferred_offsets_key = f'{self._scene_key_prefix}.flat_buffer_offsets'
+    else:
+      preferred_base_key = 'base_mip_shape'
+      preferred_factor_key = 'mip_factor'
+      preferred_offsets_key = 'flat_buffer_offsets'
+
+    # Resolve base_mip_shape
+    if preferred_base_key in scene_parameters.keys():
+      base_key = preferred_base_key
+    elif 'base_mip_shape' in scene_parameters.keys():
+      base_key = 'base_mip_shape'
+    else:
       raise ValueError(
-          f'{self.key} does not represent a flattened mipmap in the scene'
+          f'{preferred_base_key} / base_mip_shape does not represent a flattened mipmap in the scene'
           ' parameters! Scene parameters keys:'
           f' {list(scene_parameters.keys())}'
       )
-    self.shape = tuple(scene_parameters[f'{self.key}' + '.base_mip_shape'])
-    self.factor = scene_parameters[f'{self.key}' + '.mip_factor']
-    self.buffer_offsets = scene_parameters[
-        f'{self.key}' + '.flat_buffer_offsets'
-    ]
+
+    # Resolve mip_factor
+    if preferred_factor_key in scene_parameters.keys():
+      factor_key = preferred_factor_key
+    elif 'mip_factor' in scene_parameters.keys():
+      factor_key = 'mip_factor'
+    else:
+      raise ValueError(
+          f'{preferred_factor_key} / mip_factor not found in scene parameters!'
+          f' Scene parameters keys: {list(scene_parameters.keys())}'
+      )
+
+    # Resolve flat_buffer_offsets
+    if preferred_offsets_key in scene_parameters.keys():
+      offsets_key = preferred_offsets_key
+    elif 'flat_buffer_offsets' in scene_parameters.keys():
+      offsets_key = 'flat_buffer_offsets'
+    else:
+      raise ValueError(
+          f'{preferred_offsets_key} / flat_buffer_offsets not found in scene parameters!'
+          f' Scene parameters keys: {list(scene_parameters.keys())}'
+      )
+
+    # Store resolved names
+    self._base_mip_shape_key = base_key
+    self._mip_factor_key = factor_key
+    self._flat_buffer_offsets_key = offsets_key
+
+    # Now read using the resolved names
+    self.shape = tuple(scene_parameters[base_key])
+    self.factor = scene_parameters[factor_key]
+    self.buffer_offsets = scene_parameters[offsets_key]
     self.n_levels = len(self.buffer_offsets) - 1
 
-    self.storage_type = None
+    #self.storage_type = None
     if self.shape[2] == 1:
       self.storage_type = mi.Float
     else:
@@ -168,10 +213,8 @@ class FlatMipAwareImagePyramidVariable(variable.Variable):
   def clamped_frequency_decomposition(self):
     assert self.pyramid is not None
     with dr.suspend_grad():
-      # Get the pyramid at the highest resolution level.
       result = self.pyramid.get_image(level=-1)
 
-      # Apply any clamping to the highest resolution level.
       if self.normal_clamping:
         normals = dr.unravel(mi.Normal3f, result.array)
         normalized = (dr.normalize((normals * 2.0) - 1) + 1) * 0.5
@@ -179,11 +222,8 @@ class FlatMipAwareImagePyramidVariable(variable.Variable):
       elif self.clamp_range is not None:
         result = dr.clip(result, self.clamp_range[0], self.clamp_range[1])
 
-      # Finally rebuild the pyramid from the clamped result and update the
-      # pyramid.
       for level in range(self.n_levels):
         if level < self.n_levels - 1:
-          # Downsample to next level and scatter
           next_result = losses._downsample_image(result)
           laplacian = result - image_util.bilinear_upsample(
               mi.Texture2f(next_result), target_shape=result.shape
@@ -192,7 +232,6 @@ class FlatMipAwareImagePyramidVariable(variable.Variable):
           self.pyramid.pyramid[(self.n_levels - 1) - level] = laplacian
           result = next_result
           dr.schedule(self.pyramid.pyramid[(self.n_levels - 1) - level])
-      # Lowest level laplacian = gaussian at level 0
       self.pyramid.pyramid[0] = result
       dr.schedule(self.pyramid.pyramid[0])
 
@@ -228,7 +267,6 @@ class FlatMipAwareImagePyramidVariable(variable.Variable):
             mipmap_clamping=True,
         )
 
-    # If the pyramid was updated, we need to re-set the optimizer parameters.
     if update_optimizer:
       for i in range(self.n_levels):
         optimizer[self._get_level_key(i)] = self.pyramid.pyramid[i]
@@ -272,14 +310,12 @@ class FlatMipAwareImagePyramidVariable(variable.Variable):
           ' height factors!'
       )
     self.factor = width_factor
-    # Set storage type
     if self.shape[2] == 1:
       self.storage_type = mi.Float
     else:
       assert self.shape[2] == 3
       self.storage_type = mi.Color3f
 
-    # Build buffer offsets
     buffer_offsets = [0]
     for level in reversed(range(self.n_levels)):
       level_key = self._get_level_key(level)
@@ -307,13 +343,27 @@ class FlatMipAwareImagePyramidVariable(variable.Variable):
       return self.pyramid.get_image(level=self.current_lod)
     else:
       values = {}
-      # miplevel and pyramid level are inverted
-      values[f'{self.key}.flat_buffer'] = self.pyramid.get_flat_image(
+
+      values[self._flat_buffer_key] = self.pyramid.get_flat_image(
           self.buffer_offsets
       )
-      values[f'{self.key}.flat_buffer_offsets'] = mi.UInt32(self.buffer_offsets)
-      values[f'{self.key}.base_mip_shape'] = mi.ScalarPoint3u(*self.shape)
-      values[f'{self.key}.mip_factor'] = self.factor
+
+      base_key = (
+          self._base_mip_shape_key
+          or (f'{self._scene_key_prefix}.base_mip_shape' if self._scene_key_prefix else 'base_mip_shape')
+      )
+      factor_key = (
+          self._mip_factor_key
+          or (f'{self._scene_key_prefix}.mip_factor' if self._scene_key_prefix else 'mip_factor')
+      )
+      offsets_key = (
+          self._flat_buffer_offsets_key
+          or (f'{self._scene_key_prefix}.flat_buffer_offsets' if self._scene_key_prefix else 'flat_buffer_offsets')
+      )
+
+      values[offsets_key] = mi.UInt32(self.buffer_offsets)
+      values[base_key] = mi.ScalarPoint3u(*self.shape)
+      values[factor_key] = self.factor
       return values
 
   def regularization_loss(self, optimizer: mi.ad.Optimizer) -> mi.Float:

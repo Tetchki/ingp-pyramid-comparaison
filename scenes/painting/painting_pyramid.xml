@@ -65,11 +65,11 @@
 				<!-- This is not a gaussian filter but actually a bilinear filtering-->
 				<string name="filter_type" value="gaussian" />
 				<integer name="downsampling_factor" value="2" />
-				<integer name="max_levels" value="16" />
+				<!--<integer name="max_levels" value="16" />-->
 				<integer name="min_resolution" value="16" />
 				<boolean name="volume_albedo_remap" value="false" />
 				<string name="border_mode" value="repeat" />
-				<float name="mip_bias" value="-1.0" />
+				<float name="mip_bias" value="0" />
 			</texture>
 
 		  </bsdf>

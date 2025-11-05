@@ -11,32 +11,39 @@ from typing import Dict, List, Tuple
 import gin
 import mitsuba as mi
 import drjit as dr
-from drjit.opt import GradScaler, Optimizer
+from drjit.opt import GradScaler
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import trange
 
 from util.config import SceneConfig
 from pyramid import flatmip_aware_pyramid
-from ingp import instantNGP
+from hashgrid import hashgrid
 from util import parameters as parameters_lib
 from util.parameters import MitsubaVariables
 
+
 class Method(str, Enum):
     BOTH = "both"
-    INGP = "ingp"
+    HASHGRID = "hashgrid"
     PYRAMID = "pyramid"
 
+
 def parse_arguments() -> Tuple[Path, Method]:
-    """Parse CLI arguments and validate the config path."""
-    parser = argparse.ArgumentParser(description="Run INGP/Pyramid optimization on a scene.")
+    """
+    Parse CLI arguments for a scene optimization run.
+
+    Returns:
+        (config_path, method)
+    """
+    parser = argparse.ArgumentParser(description="Run Hashgrid/Pyramid optimization on a scene.")
     parser.add_argument("--config", type=str, required=True, help="Path to a gin config file.")
     parser.add_argument(
         "--method",
         type=str,
         default=Method.BOTH.value,
         choices=[m.value for m in Method],
-        help="Method to use: 'ingp', 'pyramid', or 'both' for a comparative run.",
+        help="Method to use: 'hashgrid', 'pyramid', or 'both' for a comparative run.",
     )
     args = parser.parse_args()
 
@@ -47,15 +54,13 @@ def parse_arguments() -> Tuple[Path, Method]:
     return config_path, Method(args.method)
 
 def setup_logging() -> None:
-    """Configure logging once for the whole script."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(levelname)s] %(message)s",
-    )
-
+    """Configure logging for the script."""
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 def load_scene_config(config_path: Path) -> SceneConfig:
-    """Load and validate the gin-based SceneConfig."""
+    """
+    Load and validate a gin-based SceneConfig from file.
+    """
     gin.clear_config()
     gin.parse_config_files_and_bindings([str(config_path)], None, skip_unknown=False)
     cfg = SceneConfig()
@@ -64,26 +69,28 @@ def load_scene_config(config_path: Path) -> SceneConfig:
 
 def configure_scene(method: Method, scene_cfg: SceneConfig) -> mi.Scene:
     """
-    Prepare Mitsuba scene according to the chosen method.
-    Also manages module imports and texture registrations.
+    Load and return a Mitsuba scene according to the chosen method,
+    registering required textures.
+
     Args:
-        method: Method enum indicating INGP or PYRAMID.
-        scene_cfg: SceneConfig instance with scene file paths.
+        method: HASHGRID or PYRAMID.
+        scene_cfg: SceneConfig with scene file paths.
+
     Returns:
-        scene: The mitsuba.Scene instance to optimize.
+        The loaded mitsuba.Scene.
     """
-    if method == Method.INGP:
+    if method == Method.HASHGRID:
         try:
-            from ingp import neural_texture
+            from hashgrid import neural_texture
         except Exception as e:
-            raise RuntimeError("Failed to import 'neural_texture' required for INGP.") from e
+            raise RuntimeError("Failed to import 'neural_texture' required for Hashgrid.") from e
         mi.register_texture("neuraltexture", lambda props: neural_texture.NeuralTexture(props))
-        scene = mi.load_file(scene_cfg.ingp_scene, optimize=False)
+        scene = mi.load_file(scene_cfg.hashgrid_scene, optimize=False)
     elif method == Method.PYRAMID:
         try:
             from pyramid import mipmap_flat
         except Exception as e:
-            raise RuntimeError("Failed to import 'mipmap_flat' required for pyramid.") from e
+            raise RuntimeError("Failed to import 'mipmap_flat' required for Pyramid.") from e
         mipmap_flat.register()
         scene = mi.load_file(scene_cfg.pyramid_scene, optimize=False)
     else:
@@ -91,11 +98,8 @@ def configure_scene(method: Method, scene_cfg: SceneConfig) -> mi.Scene:
     return scene
 
 def build_optimizer(scene_cfg: SceneConfig) -> mi.ad.Optimizer:
-    """Create and return a Mitsuba Adam optimizer with the configured hyperparams.
-    Args:
-        scene_cfg: SceneConfig instance with optimization hyperparameters.
-    Returns:
-        An instance of mitsuba.ad.Optimizer (Adam).
+    """
+    Create a Mitsuba Adam optimizer from config hyperparameters.
     """
     return mi.ad.Adam(
         lr=scene_cfg.lr,
@@ -103,41 +107,52 @@ def build_optimizer(scene_cfg: SceneConfig) -> mi.ad.Optimizer:
         beta_2=scene_cfg.effective_beta_2,
     )
 
-def build_variables_for_ingp(params: mi.python.util.SceneParameters,
-                             scene_cfg: SceneConfig) -> tuple[MitsubaVariables, Optimizer]:
-    """Collect INGP variables
-    Args:
-        params: The scene parameters
-        scene_cfg: SceneConfig instance with optimization hyperparameters.
-    Returns:
-        A tuple of (MitsubaVariables, Optimizer).
+def build_variables_for_hashgrid(
+    params: mi.python.util.SceneParameters, scene_cfg: SceneConfig
+) -> tuple[MitsubaVariables, mi.ad.Optimizer]:
     """
-    object_names = extract_ingp_objects_from_scene_parameters(params)
+    Collect and register hashgrid-encoded texture parameters for optimization.
 
-    instant_ngp_vars: List[instantNGP.InstantNGPVariable] = []
+    Args:
+        params: Scene parameters from mi.traverse(scene).
+        scene_cfg: Optimization hyperparameters.
+
+    Returns:
+        (MitsubaVariables wrapper, optimizer)
+    """
+    hashgrid_params = extract_hashgrid_objects_from_scene_parameters(params)
+    object_names = list(hashgrid_params.keys())
+
+    instant_ngp_vars: List[hashgrid.hashgridVariable] = []
     opt = build_optimizer(scene_cfg)
 
     for obj_name in object_names:
         instant_ngp_vars.append(
-            instantNGP.InstantNGPVariable(
+            hashgrid.hashgridVariable(
                 key=obj_name,
                 optimizer=f"{obj_name}",
                 initial_value=0,
             )
         )
+        n_levels = int(hashgrid_params[obj_name]["n_levels"].array[0])
+        logging.info("  - %s with %d levels", obj_name, n_levels)
 
     variables = parameters_lib.MitsubaVariables(instant_ngp_vars, params)
     variables.initialize(opt)
     return variables, opt
 
-def build_variables_for_pyramid(params: mi.python.util.SceneParameters,
-                                scene_cfg: SceneConfig) -> tuple[MitsubaVariables, Optimizer]:
-    """Collect pyramid variables
+def build_variables_for_pyramid(
+    params: mi.python.util.SceneParameters, scene_cfg: SceneConfig
+) -> tuple[MitsubaVariables, mi.ad.Optimizer]:
+    """
+    Collect and register flat mip-aware image pyramid parameters for optimization.
+
     Args:
-        params: The scene parameters
-        scene_cfg: SceneConfig instance with optimization hyperparameters.
+        params: Scene parameters from mi.traverse(scene).
+        scene_cfg: Optimization hyperparameters.
+
     Returns:
-        A tuple of (MitsubaVariables, Optimizer).
+        (MitsubaVariables wrapper, optimizer)
     """
     pyramid_params = extract_pyramid_parameters_from_scene_parameters(params)
 
@@ -160,28 +175,32 @@ def build_variables_for_pyramid(params: mi.python.util.SceneParameters,
                 is_scene_parameter=True,
             )
         )
+        logging.info("  - %s with %d levels", obj_name, p_params["n_levels"])
 
     variables = parameters_lib.MitsubaVariables(pyramid_vars, params)
     variables.initialize(opt)
     return variables, opt
 
 def save_image(image, out_dir: Path, name: str, fmt: str = "exr") -> None:
-    """Write an image to disk, creating the directory if needed.
+    """
+    Write an image to disk, creating the directory if needed.
+
     Args:
-        image: The Mitsuba image to save.
-        out_dir: The output directory path.
-        name: The base name for the saved image file.
-        fmt: The image format/extension (default: 'exr').
+        image: Mitsuba image/bitmap.
+        out_dir: Output directory path.
+        name: Base filename (no extension).
+        fmt: Image format/extension (default: 'exr').
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     mi.util.write_bitmap(str(out_dir / f"{name}.{fmt}"), image)
 
 def plot_and_save_losses(losses: List[float], out_dir: Path) -> None:
-    """Save a log-scale loss plot and the raw losses array."""
+    """
+    Save a loss plot (linear y-scale) and the raw losses array.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     plt.figure()
     plt.plot(losses)
-    plt.yscale("log")
     plt.xlabel("Iteration")
     plt.ylabel("Loss")
     plt.title("Optimization Loss Over Iterations")
@@ -190,26 +209,38 @@ def plot_and_save_losses(losses: List[float], out_dir: Path) -> None:
     plt.close()
     np.save(out_dir / "losses.npy", np.array(losses))
 
-def extract_ingp_objects_from_scene_parameters(params: mi.python.util.SceneParameters) -> List[str]:
+def extract_hashgrid_objects_from_scene_parameters(
+    params: mi.python.util.SceneParameters,
+) -> Dict[str, Dict[str, object]]:
     """
-    Extract object names that have INGP encoding parameters.
-    Args:
-        params: The scene parameters.
+    Extract objects that have hashgrid encoding parameters from scene parameters.
+
     Returns:
-        All object names with INGP encodings.
+        Mapping: object_name -> dict of hashgrid parameter tensors.
     """
     object_keys = [k for k in params.keys() if k.endswith(".encoding_params")]
-    return [k.replace(".encoding_params", "") for k in object_keys]
+    object_names = [k.replace(".encoding_params", "") for k in object_keys]
+
+    hashgrid_params: Dict[str, Dict[str, object]] = {}
+    for obj_name in object_names:
+        hashgrid_params[obj_name] = {
+            "encoding_params": params[f"{obj_name}.encoding_params"],
+            "n_levels": params[f"{obj_name}.n_levels"],
+            "n_features_per_level": params[f"{obj_name}.n_features_per_level"],
+            "hashmap_size": params[f"{obj_name}.hashmap_size"],
+            "base_resolution": params[f"{obj_name}.base_resolution"],
+            "per_level_scale": params[f"{obj_name}.per_level_scale"],
+        }
+    return hashgrid_params
 
 def extract_pyramid_parameters_from_scene_parameters(
     scene_parameters: mi.python.util.SceneParameters,
 ) -> Dict[str, Dict[str, object]]:
     """
-    Collect pyramid-related parameters per object name.
-    Args:
-        scene_parameters: The scene parameters.
+    Extract flat mip-aware pyramid parameters per object from scene parameters.
+
     Returns:
-        A dictionary mapping object names to their pyramid parameters.
+        Mapping: object_name -> dict with base shape, factor, buffers, and n_levels.
     """
     object_keys = [k for k in scene_parameters.keys() if k.endswith("data.base_mip_shape")]
     object_names = [k.replace(".data.base_mip_shape", "") for k in object_keys]
@@ -252,10 +283,14 @@ class OptimizationPaths:
 
 def optimize_once(scene_cfg: SceneConfig, method: Method) -> List[float]:
     """
-    Run a single optimization for the given method.
+    Run a single optimization pass for the chosen method on the configured scene.
+
     Args:
-        scene_cfg: SceneConfig instance with scene and optimization parameters.
-        method: Method enum indicating INGP or PYRAMID.
+        scene_cfg: Scene and optimization parameters.
+        method: HASHGRID or PYRAMID.
+
+    Returns:
+        List of per-iteration loss values.
     """
     method_output_dir = Path(scene_cfg.output_path) / method.value
     out_paths = OptimizationPaths.from_output_dir(method_output_dir)
@@ -273,16 +308,12 @@ def optimize_once(scene_cfg: SceneConfig, method: Method) -> List[float]:
 
     scaler = GradScaler()
 
-    if method == Method.INGP:
-        variables, opt = build_variables_for_ingp(params, scene_cfg)
+    if method == Method.HASHGRID:
+        variables, opt = build_variables_for_hashgrid(params, scene_cfg)
     elif method == Method.PYRAMID:
         variables, opt = build_variables_for_pyramid(params, scene_cfg)
     else:
         raise ValueError(f"Unsupported method for optimize_once: {method}")
-
-    logging.info("Optimizing the following parameters:")
-    for key in opt.keys():
-        logging.info("  - %s", key)
 
     losses: List[float] = []
     seed = 0
@@ -323,20 +354,20 @@ def optimize_once(scene_cfg: SceneConfig, method: Method) -> List[float]:
         save_image(final_image, out_paths.output, f"final_image_{scene_cfg.rerender_spp}spp", fmt="exr")
 
     plot_and_save_losses(losses, out_paths.losses)
-
     return losses
 
-def plot_comparison(ingp_losses: List[float], pyramid_losses: List[float], scene_cfg: SceneConfig) -> None:
-    """Plot and save a comparison of losses between INGP and Pyramid methods."""
+def plot_comparison(hashgrid_losses: List[float], pyramid_losses: List[float], scene_cfg: SceneConfig) -> None:
+    """
+    Plot and save a comparison of losses between the Hashgrid and Pyramid methods.
+    """
     comparison_path = Path(scene_cfg.output_path + "/comparison_loss_plot.png")
 
     plt.figure(figsize=(10, 6))
-    plt.plot(ingp_losses, label="INGP Loss", color="blue")
-    plt.plot(pyramid_losses, label="Pyramid Loss", color="orange")
-    plt.yscale("log")
+    plt.plot(hashgrid_losses, label="Hashgrid Loss")
+    plt.plot(pyramid_losses, label="Pyramid Loss")
     plt.xlabel("Iteration")
-    plt.ylabel("Loss (log scale)")
-    plt.title("Loss Comparison between INGP and Pyramid Methods")
+    plt.ylabel("Loss")
+    plt.title("Loss Comparison between Hashgrid and Pyramid Methods")
     plt.legend()
     plt.grid(True)
     plt.savefig(comparison_path)
@@ -348,10 +379,9 @@ def main():
     scene_cfg = load_scene_config(config_path)
 
     if method == Method.BOTH:
-        ingp_losses = optimize_once(scene_cfg, Method.INGP)
+        hashgrid_losses = optimize_once(scene_cfg, Method.HASHGRID)
         pyramid_losses = optimize_once(scene_cfg, Method.PYRAMID)
-
-        plot_comparison(ingp_losses, pyramid_losses, scene_cfg)
+        plot_comparison(hashgrid_losses, pyramid_losses, scene_cfg)
     else:
         optimize_once(scene_cfg, method)
 

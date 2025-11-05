@@ -1,7 +1,7 @@
 SceneConfig:
 
     ref_scene = "../scenes/painting/painting.xml"
-    ingp_scene = "../scenes/painting/painting_neural.xml"
+    hashgrid_scene = "../scenes/painting/painting_neural.xml"
     pyramid_scene = "../scenes/painting/painting_pyramid.xml"
 
     # Paths
