@@ -44,6 +44,7 @@ Under dyadic scaling, aligned grids, and collision-free hashing (dense grid), th
 
 
 \section{Assumptions}
+\label{assumptions}
 
 \begin{itemize}
 \item \textbf{Domain and boundaries.}
@@ -217,7 +218,7 @@ induces identical gradients on the per-level coefficients:
 Consequently, optimizing each level of the Laplacian pyramid proceeds
 identically to optimizing the corresponding hash-grid parameters
 in the linear regime, which matches our empirical findings in
-\cref{fig:lossplots}.
+\cref{fig:losses_all}.
 
 \begin{table}[h]
 \centering
@@ -297,25 +298,94 @@ are initialized to zero and use identical sampling budgets per
 iteration.
 
 \paragraph{Results.}
-We optimized a \(4\text{K}\) texture of \emph{The Great Wave off Kanagawa}
-for 128 iterations under an $\ell_2$ reconstruction loss. The per-iteration
-loss curves of the Laplacian pyramid and the linear hash grid are
-indistinguishable within numerical precision, fully overlapping across
-the entire optimization.  Both follow the same non-monotonic descent
-pattern and reach identical minima, confirming that their gradient flows
-and convergence dynamics are equivalent in practice.  The final
-reconstructed textures are visually and numerically identical to machine
-precision, as predicted by the analytical gradient identity.
+We first validate the equivalence at the level of the linear synthesis operator, without learning.
+Given a target image, we build its Laplacian pyramid \(\{L_\ell, G_L\}\), copy the per-level
+coefficients into the corresponding levels of the linear hash grid, and then reconstruct the image
+using both decoders under our assumptions. For all tested images
+(a \(16\times 16\) checkerboard, a \(1024\times 1024\) checkerboard, the \(512\times 512\)
+Lena image, and the \(4096\times 4096\) Claude Lorrain painting
+The Embarkation of the Queen of Sheba), the Laplacian-pyramid and hash-grid reconstructions
+agree with each other and with the original up to numerical precision. The \(\ell_2\) norm of the
+difference between the two reconstructions is exactly zero for the checkerboards and Lena,
+and \(1.98\times 10^{-15}\) for the Claude Lorrain image. This residual is on the order of
+float-precision rounding error and is therefore consistent with exact equality of the two linear
+operators.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.82\linewidth]{loss_comparison.png}
-\caption{Loss evolution during the \(4\text{K}\) texture optimization of
-\emph{The Great Wave off Kanagawa} over 128 iterations.  The Laplacian
-pyramid (orange) and the linear hash grid (blue) curves overlap exactly,
-confirming identical optimization dynamics and loss landscapes.}
-\label{fig:lossplots}
+\begin{tabular}{ccc}
+\includegraphics[width=0.3\linewidth]{img/check16x16_original_image.jpg} &
+\includegraphics[width=0.3\linewidth]{img/check16x16_pyramid_reconstructed_image.jpg} &
+\includegraphics[width=0.3\linewidth]{img/check16x16_hashgrid_neural_texture_image.jpg} \\
+\small Original & \small Pyramid Reconstruction & \small Hashgrid Reconstruction \\
+\end{tabular}
+\caption{Reconstruction comparison for the 16×16 checkerboard pattern.}
 \end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{ccc}
+\includegraphics[width=0.3\linewidth]{img/checker_original_image.jpg} &
+\includegraphics[width=0.3\linewidth]{img/checker_pyramid_reconstructed_image.jpg} &
+\includegraphics[width=0.3\linewidth]{img/checker_hashgrid_neural_texture_image.jpg} \\
+\small Original & \small Pyramid Reconstruction & \small Hashgrid Reconstruction \\
+\end{tabular}
+\caption{Reconstruction comparison for the 1024×1024 checkerboard pattern.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{ccc}
+\includegraphics[width=0.3\linewidth]{img/Lenna_original_image.jpg} &
+\includegraphics[width=0.3\linewidth]{img/Lenna_pyramid_reconstructed_image.jpg} &
+\includegraphics[width=0.3\linewidth]{img/Lenna_hashgrid_neural_texture_image.jpg} \\
+\small Original & \small Pyramid Reconstruction & \small Hashgrid Reconstruction \\
+\end{tabular}
+\caption{Reconstruction comparison for the 512×512 Lena image.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{ccc}
+\includegraphics[width=0.3\linewidth]{img/Claude_original_image.jpg} &
+\includegraphics[width=0.3\linewidth]{img/Claude_pyramid_reconstructed_image.jpg} &
+\includegraphics[width=0.3\linewidth]{img/Claude_hashgrid_neural_texture_image.jpg} \\
+\small Original & \small Pyramid Reconstruction & \small Hashgrid Reconstruction \\
+\end{tabular}
+\caption{Reconstruction comparison for the 4096×4096 Claude Lorrain painting.}
+\end{figure}
+
+
+We then place both decoders inside the same optimization loop and fit them independently to several
+textures under an \(\ell_2\) reconstruction loss. We consider a \(1024\times 1024\) checkerboard, a \(512\times 512\) Lena, a \(4096\times 4096\) version
+of the Claude Lorrain painting, and a \(8192\times 8192\) version of The Great Wave off Kanagawa. For
+each case, we train the Laplacian-pyramid and hash-grid parameterizations from the same zero
+initialization with identical optimization hyperparameters. The per-iteration loss curves closely
+track each other and are visually almost superposed over the full optimization, with only minor
+deviations appearing once the loss reaches the \(10^{-5}\) range. The final
+reconstructed images are visually indistinguishable. These experiments numerically confirm the analytical equivalence of the two synthesis operators and show that, in the linear regime, the optimization dynamics of the
+two parameterizations are effectively the same in practice.
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{cc}
+\includegraphics[width=0.45\linewidth]{losses/checker_loss_comparison.png} &
+\includegraphics[width=0.45\linewidth]{losses/lenna_loss_comparison.png} \\
+\small Checkerboard (1024×1024) & \small Lena (512×512) \\[1em]
+
+\includegraphics[width=0.45\linewidth]{losses/claude_loss_comparison.png} &
+\includegraphics[width=0.45\linewidth]{losses/wave_8k_loss_comparison.png} \\
+\small Claude Lorrain (4096×4096) & \small Great Wave (8192×8192)
+\end{tabular}
+\caption{Loss evolution during texture optimization for four images.
+Laplacian-pyramid and linear hash-grid parameterizations exhibit nearly
+identical optimization dynamics}
+\label{fig:losses_all}
+\end{figure}
+
+\newpage
+
+
 
 \bibliographystyle{plain}
 \bibliography{references}
